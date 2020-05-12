@@ -38,7 +38,8 @@ N <- HCP %>%
         .) %>% 
   .[complete.cases(.),]
 
-# Subsetting Narcissm items that DO require reverse scoring (see Rollock and Lui (2015) for reference of items)
+# Subsetting Narcissm items that DO require reverse scoring (see Rollock and Lui (2015) for reference of items, 
+        # https://sci-hub.tw/https://doi.org/10.1177/1073191115590854)
 # Adding back SubjectID, FamilyID, and Gender to dataset
 # Will join on these variables further down.
 # Items 1, 16, 31, and 46 need reverse scoring
