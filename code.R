@@ -36,7 +36,7 @@ N <- HCP %>%
         Family_ID = HCP$Family_ID,
         Gender = HCP$Gender,
         .) %>% 
-  .[complete.cases(.),]
+  .[complete.cases(.),] # Removing missing data, recode will give warnings that items that couldn't be recoded will be given NA's
 
 # Subsetting Narcissm items that DO require reverse scoring (see Rollock and Lui (2015) for reference of items, 
         # https://sci-hub.tw/https://doi.org/10.1177/1073191115590854)
@@ -59,7 +59,8 @@ Reversed_N <- HCP %>%
         Family_ID = HCP$Family_ID,
         Gender = HCP$Gender,
         .) %>% 
-  .[complete.cases(.),]
+  .[complete.cases(.),] # Removing missing data, recode will give warnings that items that couldn't be recoded will be given NA's
+
 
 # Joining normal and reversed scored items back together into full_N data frame.
 # Row sum is included to ensure items are adequately sum-scored compared to the NEOFAC_N variable
@@ -91,7 +92,8 @@ E <- HCP %>%
         Family_ID = HCP$Family_ID,         
         Gender = HCP$Gender,
         .) %>% 
-  .[complete.cases(.),]
+  .[complete.cases(.),] # Removing missing data, recode will give warnings that items that couldn't be recoded will be given NA's
+
 
 # Items 12, 27, 42, and 57 need to be reverse scored
 Reversed_E <- HCP %>% 
@@ -136,7 +138,8 @@ Reversed_O <- HCP %>%
         Family_ID = HCP$Family_ID,         
         Gender = HCP$Gender,
         .) %>% 
-  .[complete.cases(.),]
+  .[complete.cases(.),] # Removing missing data, recode will give warnings that items that couldn't be recoded will be given NA's
+
 
 # Items 13, 28, 43, 53, 58 don't need reverse scoring
 O <- HCP %>% 
@@ -156,7 +159,8 @@ O <- HCP %>%
         Family_ID = HCP$Family_ID,         
         Gender = HCP$Gender,
         .) %>% 
-  .[complete.cases(.),]
+  .[complete.cases(.),] # Removing missing data, recode will give warnings that items that couldn't be recoded will be given NA's
+
 
 full_O <- merge(O, Reversed_O, by = c('Subject','Family_ID','Gender'))
 full_O$rowsum <- full_O[,-c(1:3)] %>% rowSums(., na.rm = T)
@@ -183,7 +187,8 @@ Reversed_A <- HCP %>%
         Family_ID = HCP$Family_ID,         
         Gender = HCP$Gender,
         .) %>% 
-  .[complete.cases(.),]
+  .[complete.cases(.),] # Removing missing data, recode will give warnings that items that couldn't be recoded will be given NA's
+
 
 # Items 4, 19, 39, 49 don't need reverse scoring
 A <- HCP %>% 
@@ -202,7 +207,8 @@ A <- HCP %>%
         Family_ID = HCP$Family_ID,         
         Gender = HCP$Gender,
         .) %>% 
-  .[complete.cases(.),]
+  .[complete.cases(.),] # Removing missing data, recode will give warnings that items that couldn't be recoded will be given NA's
+
 
 full_A <- merge(A, Reversed_A, by = c('Subject','Family_ID','Gender'))
 full_A$rowsum <- full_A[,-c(1:3)] %>% rowSums(., na.rm = T)
@@ -229,7 +235,8 @@ C <- HCP %>%
         Family_ID = HCP$Family_ID,         
         Gender = HCP$Gender,
         .) %>% 
-  .[complete.cases(.),]
+  .[complete.cases(.),] # Removing missing data, recode will give warnings that items that couldn't be recoded will be given NA's
+
 
 # Items 15, 30, 45, 55 need to be reverse scored
 Reversed_C <- HCP %>% 
@@ -248,7 +255,7 @@ Reversed_C <- HCP %>%
         Family_ID = HCP$Family_ID,         
         Gender = HCP$Gender,
         .) %>% 
-  .[complete.cases(.),]
+  .[complete.cases(.),] # Removing missing data, recode will give warnings that items that couldn't be recoded will be given NA's
 
 full_C <- merge(C, Reversed_C, by = c('Subject','Family_ID','Gender'))
 full_C$rowsum <- full_C[,-c(1:3)] %>% rowSums(., na.rm = T)
