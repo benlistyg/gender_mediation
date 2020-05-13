@@ -3,6 +3,9 @@ library(lavaan)
 library(stringr)
 library(dplyr)
 
+# Just to see how long this code takes to run. On my (Ben) machine, it's ~25 minutes.
+begin_ <- Sys.time()
+
 # Importing Data from Github
 HCP <- data.table::fread('https://raw.githubusercontent.com/benlistyg/gender_mediation/master/HCP%20gender%20data.csv')
 
@@ -14,7 +17,7 @@ HCP$FS_L_WM_Hypointens_Vol <- NULL
 
 # Subsetting Narcissm items that don't require reverse scoring.
 # Adding back SubjectID, FamilyID, and Gender to dataset
-  # Will join on these variables further down.
+# Will join brain data on these variables (SubjectID, FamilyID, and Gender) further down.
 # Items 6, 11, 21, 26, 36, 41, 51, 56 don't need reverse scoring
 N <- HCP %>% 
   select(NEORAW_06,
@@ -38,8 +41,8 @@ N <- HCP %>%
         .) %>% 
   .[complete.cases(.),] # Removing missing data, recode will give warnings that items that couldn't be recoded will be given NA's
 
-# Subsetting Narcissm items that DO require reverse scoring (see Rollock and Lui (2015) for reference of items, 
-        # https://sci-hub.tw/https://doi.org/10.1177/1073191115590854)
+# Subsetting Narcissm items that DO require reverse scoring (see Rollock and Lui (2015) for reference of items) 
+# https://sci-hub.tw/https://doi.org/10.1177/1073191115590854
 # Adding back SubjectID, FamilyID, and Gender to dataset
 # Will join on these variables further down.
 # Items 1, 16, 31, and 46 need reverse scoring
@@ -63,13 +66,13 @@ Reversed_N <- HCP %>%
 
 
 # Joining normal and reversed scored items back together into full_N data frame.
-# Row sum is included to ensure items are adequately sum-scored compared to the NEOFAC_N variable
-  # Scoring involves making items range from 0 to 4 as opposed to 1 to 5
+# Row sum is included to ensure items are adequately sum-scored compared to the NEOFAC_N variable in the HCP dataframe
+# Scoring for the sum score in the original HCP data involves making items range from 0 to 4 as opposed to 1 to 5
 # This process is repeated for all Big 5 traits
 full_N <- merge(N, Reversed_N, by = c('Subject','Family_ID','Gender'))
 full_N$rowsum <- full_N[,-c(1:3)] %>% rowSums(., na.rm = T)
 
-        
+
 # Extraversion
 # Items 2, 7, 17, 22, 32, 37, 47, 52 don't need reverse scoring
 E <- HCP %>% 
@@ -262,10 +265,38 @@ full_C$rowsum <- full_C[,-c(1:3)] %>% rowSums(., na.rm = T)
 
 #####
 
+# Subsetting Internalizing and Externalizing raw scores and adding back Subject ID, Family ID, and Gender
+
+Internalizing <- HCP %>% 
+  select(ASR_Intn_Raw) %>% 
+  as.data.frame() %>% 
+  cbind(Subject = HCP$Subject,
+        Family_ID = HCP$Family_ID,
+        Gender = HCP$Gender,
+        .) %>% 
+  .[complete.cases(.),] # Removing missing observations
+
+Externalizing <- HCP %>% 
+  select(ASR_Extn_Raw) %>% 
+  as.data.frame() %>% 
+  cbind(Subject = HCP$Subject,
+        Family_ID = HCP$Family_ID,
+        Gender = HCP$Gender,
+        .) %>% 
+  .[complete.cases(.),]
+
+#####
+
+# Things to note:
+  # We have complete data on 1105 people total, 7 psychological outcomes
+  # 442 Family IDs (this is the clustering variable for the multilevel mediation)
+
+#####
+
 # IRT Scoring #
-# Removing the sumscore, subjectid, familyid, and gender to IRT score the items
+# Removing the sumscore, subjectid, familyid, and gender to IRT score JUST the items
 # Each big 5 is scored independently
-# Missing items are removed.
+# Missing items are removed, although this is a redundent step from the `complete.cases()` used above
 
 N_model <- mirt(full_N[,-c(1:3,ncol(full_N))],1,technical = list(removeEmptyRows=TRUE))
 E_model <- mirt(full_E[,-c(1:3,ncol(full_E))],1,technical = list(removeEmptyRows=TRUE))
@@ -276,46 +307,68 @@ C_model <- mirt(full_C[,-c(1:3,ncol(full_C))],1,technical = list(removeEmptyRows
 #####
 
 # Combining Subject ID, FamilyID, Gender, and IRT Thetas into long dataframe.
-        # `fscores` is from the MIRT package and returns IRT theta values from a fitted IRT model
+# `fscores` is from the MIRT package and returns IRT theta values from a fitted IRT model
 
-B5_data <- rbind(
+personality_data <- rbind(
   data.frame(
     Subject = N$Subject,
     Family_ID = N$Family_ID,
     N_scores = N_model %>% fscores,
     Gender = N$Gender,
-    B5 = 'N'),
+    personality = 'N') %>% 
+    setNames(c('Subject', "Family_ID",'Scores',"Gender","Personality")),
   
   data.frame(
     Subject = E$Subject,
     Family_ID = E$Family_ID,
     E_scores = E_model %>% fscores,
     Gender = E$Gender,
-    B5 = 'E'),
+    personality = 'E') %>% 
+    setNames(c('Subject', "Family_ID",'Scores',"Gender","Personality")),
   
   data.frame(
     Subject = O$Subject,
     Family_ID = O$Family_ID,
     O_scores = O_model %>% fscores,
     Gender = O$Gender,
-    B5 = 'O'),
+    personality = 'O') %>% 
+    setNames(c('Subject', "Family_ID",'Scores',"Gender","Personality")),
   
   data.frame(
     Subject = A$Subject,
     Family_ID = A$Family_ID,
     A_scores = A_model %>% fscores,
     Gender = A$Gender,
-    B5 = 'A'),
+    personality = 'A') %>% 
+    setNames(c('Subject', "Family_ID",'Scores',"Gender","Personality")),
   
   data.frame(
     Subject = C$Subject,
     Family_ID = C$Family_ID,
     C_scores = C_model %>% fscores,
     Gender = C$Gender,
-    B5 = 'C'))
+    personality = 'C') %>% 
+    setNames(c('Subject', "Family_ID",'Scores',"Gender","Personality")),
+  
+  data.frame(
+    Subject = Internalizing$Subject,
+    Family_ID = Internalizing$Family_ID,
+    Internalizing_scores = Internalizing$ASR_Intn_Raw,
+    Gender = Internalizing$Gender,
+    personality = 'Int') %>% 
+    setNames(c('Subject', "Family_ID",'Scores',"Gender","Personality")),
+  
+  data.frame(
+    Subject = Externalizing$Subject,
+    Family_ID = Externalizing$Family_ID,
+    Internalizing_scores = Externalizing$ASR_Extn_Raw,
+    Gender = Externalizing$Gender,
+    personality = 'Ext') %>% 
+    setNames(c('Subject', "Family_ID",'Scores',"Gender","Personality"))
+)
 
 # Creating long dataframe of brain data (based on the variables that have "Thck", "Vol" or "Area" in their name
-        # 260 in total
+# 260 in total
 # Joining brain data with B5 data on subjectid and family ID
 
 Brain_data <- HCP %>% 
@@ -327,48 +380,54 @@ Brain_data <- HCP %>%
   reshape2::melt(id.vars = c('Subject',"Family_ID")) %>% 
   `colnames<-`(c("Subject","Family_ID","Brain_Area",'Brain_Value'))
 
-full_data <- merge(B5_data,
+full_data <- merge(personality_data,
                    Brain_data, 
                    by=c("Subject","Family_ID"))
 
+full_data$Personality <- as.character(full_data$Personality)
+full_data$Brain_Area <- as.character(full_data$Brain_Area)
+
+# Full data should be 260(Brain regions and measurements) * 7(Psych outcomes) * 1105 (people) = 2011100 rows long
+
 #####
 
-# Function to iterate over long dataframe
-# This function takes in a Big 5 Trait and Brain Area
+# Function to iterate over long `full_data` dataframe
+# This function takes in a one of the 7 psychological outcomes (O,C,E,A,N,Int,Ext) and Brain Area
 # Subsets the long dataframe (full_data)
 # Fits a multilevel mediation model
-        # Family ID is the cluster
-# Returns parameter estimates for the fitted model
-# Takes around 15 minutes to run over all 1300 combinations of B5 x Brain Region
+# Family ID is the cluster
+# Returns parameter estimates (including standardized estimates) for the fitted model
+# Takes around 25 minutes to run over all 1300 combinations of Psych outcomes w/ Brain Region
+
 model_function <- function(personality,
                            brain_area,
                            ...){
   
-  
-  
   in_function_data <- full_data %>% 
-    filter(B5 == personality,
+    filter(Personality == personality,
            Brain_Area == brain_area) %>% 
     mutate(Gender = recode(Gender, 
                            'M' = 0, # Recoding males as a 0
                            'F' = 1))# Recoding females as a 1
   
-  Data <- data.frame(X = in_function_data$Gender, 
-                     Y = scale(in_function_data$F1), # Z-scoring the IRT thetas, interpret this as SD increase / decrease
-                     M = scale(in_function_data$Brain_Value), #Z-scoring the brain region, interpret this as SD increase / decrease
-                     Family_ID = in_function_data$Family_ID)
-  
+  Data <- data.frame(X = in_function_data$Gender,             # Gender is the IV in our model
+                     Y = scale(in_function_data$Scores),      # Z-scoring the IRT thetas, interpret this as SD increase / decrease
+                     M = scale(in_function_data$Brain_Value), # Z-scoring the brain region, interpret this as SD increase / decrease
+                     Family_ID = in_function_data$Family_ID)  # Clustering variable
+ 
+  # We're making an isomorphic assumption with this multi-level mediation, such that the mediating relationship between clusters is the same as the mediating relationship within clusters, hence why L1 and L2 are equivalent
+   
   model <- 'level: 1
             # direct effect
              Y ~ c*X
            # mediator
              M ~ a*X
              Y ~ b*M
-           # indirect effect (a*b)
+           # indirect effect1 (a*b)
              ab := a*b
            # total effect
              total := c + (a*b)
-          
+
           level: 2
            # direct effect
              Y ~ c*X
@@ -397,27 +456,81 @@ model_function <- function(personality,
 
 #####
 
-#Conditions is a dataframe with all possible combinations of B5 and Brain Region
-        # This is what model_function iterates over
-conditions <- expand.grid(unique(full_data$B5),
+# Conditions is a dataframe with all possible combinations of psych and Brain Region
+# This is what model_function iterates over
+# Is 7*260 = 1820 rows long
+conditions <- expand.grid(unique(full_data$Personality),
                           unique(full_data$Brain_Area)) %>% 
   `colnames<-`(c('personality',"brain_area"))
 
 # This is the part that does the row-wise iteration
-        # final_data contains all the lavaan parameter estimates from the 1300 combinations
-        
+# final_data contains all the lavaan parameter estimates from the 1300 combinations
+
 final_data <- plyr::mdply(.data = conditions, 
                           .fun = model_function)
 
 #####
 
+end_ <- Sys.time() - begin_
 
+#####
 
+O_indirect <- final_data %>%
+  filter(label == 'ab',
+         personality == 'O') %>% 
+  unique %>% 
+  arrange(pvalue) %>% 
+  mutate(fdr.p = p.adjust(pvalue, method = 'fdr'),
+         hoch.p = p.adjust(pvalue, method = 'hochberg'),
+         holm.p = p.adjust(pvalue, method = 'holm'),
+         bonferroni.p = p.adjust(pvalue, method = 'bonferroni'),
+         BY.p = p.adjust(pvalue, method = 'BY'),
+         bonferroni_crit = 0.05/260)
 
+C_indirect <- final_data %>%
+  filter(label == 'ab',
+         personality == 'C') %>% 
+  unique %>% 
+  arrange(pvalue) %>% 
+  mutate(fdr.p = p.adjust(pvalue, method = 'fdr'),
+         hoch.p = p.adjust(pvalue, method = 'hochberg'),
+         holm.p = p.adjust(pvalue, method = 'holm'),
+         bonferroni.p = p.adjust(pvalue, method = 'bonferroni'),
+         BY.p = p.adjust(pvalue, method = 'BY'),
+         bonferroni_crit = 0.05/260)
 
+E_indirect <- final_data %>%
+  filter(label == 'ab',
+         personality == 'E') %>% 
+  unique %>% 
+  arrange(pvalue) %>% 
+  mutate(fdr.p = p.adjust(pvalue, method = 'fdr'),
+         hoch.p = p.adjust(pvalue, method = 'hochberg'),
+         holm.p = p.adjust(pvalue, method = 'holm'),
+         bonferroni.p = p.adjust(pvalue, method = 'bonferroni'),
+         BY.p = p.adjust(pvalue, method = 'BY'),
+         bonferroni_crit = 0.05/260)
 
+A_indirect <- final_data %>%
+  filter(label == 'ab',
+         personality == 'A') %>% 
+  unique %>% 
+  arrange(pvalue) %>% 
+  mutate(fdr.p = p.adjust(pvalue, method = 'fdr'),
+         hoch.p = p.adjust(pvalue, method = 'hochberg'),
+         holm.p = p.adjust(pvalue, method = 'holm'),
+         bonferroni.p = p.adjust(pvalue, method = 'bonferroni'),
+         BY.p = p.adjust(pvalue, method = 'BY'),
+         bonferroni_crit = 0.05/260)
 
-
-
-
-
+N_indirect <- final_data %>%
+  filter(label == 'ab',
+         personality == 'N') %>% 
+  unique %>% 
+  arrange(pvalue) %>% 
+  mutate(fdr.p = p.adjust(pvalue, method = 'fdr'),
+         hoch.p = p.adjust(pvalue, method = 'hochberg'),
+         holm.p = p.adjust(pvalue, method = 'holm'),
+         bonferroni.p = p.adjust(pvalue, method = 'bonferroni'),
+         BY.p = p.adjust(pvalue, method = 'BY'),
+         bonferroni_crit = 0.05/260)
