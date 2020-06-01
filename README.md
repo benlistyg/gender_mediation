@@ -2,7 +2,7 @@
 
 Data and code for Hyatt et al. in-progress work examining brain morphometry as a mediator of gender differences in personality and internalizing / externalizing psychopathology.
 
-Gender --> Brain Morphometry --> Big 5 / Psychopathology
+Gender &larr; Brain Morphometry &larr; Big 5 / Psychopathology
 
 ```
 Data
